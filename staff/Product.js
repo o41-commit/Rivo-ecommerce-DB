@@ -15,7 +15,7 @@ item.post("/create", upload.array("images", 5), async (req, res) => {
 
   try {
     const images = req.files.map(
-      (file) => `http://localhost:8080/uploads/${file.filename}`
+      (file) => `https://rivo-ecommerce-db.onrender.com/uploads/${file.filename}`
     );
 
     const parsedSize = size ? size.split(",") : [];

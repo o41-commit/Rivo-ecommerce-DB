@@ -32,7 +32,7 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(
   cors({
-    origin: "https://rivocommerce.netlify.app",
+    origin: "https://rivocommerce.netlify.app/",
   }),
 );
 

@@ -1,7 +1,8 @@
 import express from "express";
 import { v4 as uuidv4 } from "uuid";
-import upload from "./uploads.js"; // Multer
-import Product from "../model/productDb.js"; // import the model
+import upload from "./uploads.js";
+import Product from "../model/productDb.js";
+import "../config/cloudinary.js";
 
 const item = express.Router();
 
@@ -14,12 +15,8 @@ item.post("/create", upload.array("images", 5), async (req, res) => {
   }
 
   try {
-    const images = req.files.map(
-      (file) => `https://rivo-ecommerce-db.onrender.com/uploads/${file.filename}`
-    );
-
-    const parsedSize = size ? size.split(",") : [];
-    const parsedColors = colors ? colors.split(",") : [];
+    // Cloudinary replaces local file URLs
+    const images = req.files.map((file) => file.path);
 
     const newProduct = new Product({
       id: uuidv4(),
@@ -27,12 +24,12 @@ item.post("/create", upload.array("images", 5), async (req, res) => {
       price,
       description,
       category,
-      size: parsedSize,
-      colors: parsedColors,
+      size: size ? size.split(",") : [],
+      colors: colors ? colors.split(",") : [],
       images,
     });
 
-    await newProduct.save(); // save to MongoDB
+    await newProduct.save();
 
     res.status(201).json({
       success: true,
@@ -40,7 +37,7 @@ item.post("/create", upload.array("images", 5), async (req, res) => {
       product: newProduct,
     });
   } catch (error) {
-    console.error("error", error);
+    console.error("CREATE_PRODUCT_ERROR:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -51,7 +48,7 @@ item.get("/items", async (req, res) => {
     const products = await Product.find();
     res.status(200).json(products);
   } catch (error) {
-    console.error(error);
+    console.error("GET_ALL_ERROR:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -60,10 +57,14 @@ item.get("/items", async (req, res) => {
 item.get("/item/:id", async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
-    if (!product) return res.status(404).json({ message: "Product not found" });
+
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
     res.status(200).json(product);
   } catch (error) {
-    console.error(error);
+    console.error("GET_ONE_ERROR:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -74,7 +75,10 @@ item.put("/item/edit/:id", async (req, res) => {
     const { name, price, description, category, size, colors } = req.body;
 
     const product = await Product.findById(req.params.id);
-    if (!product) return res.status(404).json({ message: "Product not found" });
+
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
 
     if (name) product.name = name;
     if (price) product.price = price;
@@ -85,9 +89,13 @@ item.put("/item/edit/:id", async (req, res) => {
 
     await product.save();
 
-    res.status(200).json({ success: true, message: "Product updated", product });
+    res.status(200).json({
+      success: true,
+      message: "Product updated successfully",
+      product,
+    });
   } catch (error) {
-    console.error(error);
+    console.error("UPDATE_ERROR:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -96,13 +104,19 @@ item.put("/item/edit/:id", async (req, res) => {
 item.delete("/delete/:id", async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
-    if (!product) return res.status(404).json({ message: "Product not found" });
+
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
 
     await Product.findByIdAndDelete(req.params.id);
 
-    res.status(200).json({ success: true, message: "Product deleted successfully" });
+    res.status(200).json({
+      success: true,
+      message: "Product deleted successfully",
+    });
   } catch (error) {
-    console.error(error);
+    console.error("DELETE_ERROR:", error);
     res.status(500).json({ message: "Server error" });
   }
 });

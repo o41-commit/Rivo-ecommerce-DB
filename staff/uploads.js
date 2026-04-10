@@ -1,25 +1,22 @@
 import multer from "multer";
-import path from "path";
-import fs from "fs";
+import { v2 as cloudinary } from "cloudinary";
+import { CloudinaryStorage } from "multer-storage-cloudinary";
 
-// Ensure the uploads folder exists
-const uploadDir = path.join(process.cwd(), "uploads");
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir);
-}
+// Cloudinary config (make sure this exists in config/cloudinary.js)
+import "../config/cloudinary.js";
 
-// Multer storage with absolute path
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir); // absolute path to uploads
-  },
-  filename: (req, file, cb) => {
-    // Replace spaces in filename with underscores for safety
-    const cleanName = file.originalname.replace(/\s+/g, "_");
-    cb(null, Date.now() + "-" + cleanName);
+const storage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: "rivo-products",
+    allowed_formats: ["jpg", "jpeg", "png", "webp"],
+    transformation: [
+      { width: 1000, crop: "limit" } // optional optimization
+    ],
   },
 });
 
+// Multer using Cloudinary storage
 const upload = multer({ storage });
 
 export default upload;

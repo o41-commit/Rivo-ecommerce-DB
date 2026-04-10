@@ -22,22 +22,19 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 8000;
 
-// Connect to MongoDB
 mongoose
-  .connect(process.env.MONGO_URI) // no deprecated options
+  .connect(process.env.MONGO_URI) 
   .then(() => console.log("MongoDB connected successfully"))
   .catch((err) => console.error("MongoDB connection error:", err));
 
-// Middleware
-app.use("/uploads", express.static("uploads"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
 app.use(
   cors({
-    origin: "https://rivocommerce.netlify.app",
+    origin: "https://rivocommerce.netlify.app/",
   }),
 );
-
 
 // Routes
 // Auth

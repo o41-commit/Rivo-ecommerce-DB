@@ -3,9 +3,7 @@ import express from "express";
 
 const goods = express.Router();
 
-// ==============================
 // GET ALL PRODUCTS
-// ==============================
 goods.get("/all", async (req, res) => {
   try {
     const products = await Product.find();

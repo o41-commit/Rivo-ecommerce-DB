@@ -16,7 +16,7 @@ confirmOrder.get("/all", async (req, res) => {
 });
 
 // TO GET A SINGLE ORDER
-confirmOrder.get("order/:id", async (req, res) => {
+confirmOrder.get("/order/:id", async (req, res) => {
   const orderId = req.params.id;
   try {
     if (!orderId) {

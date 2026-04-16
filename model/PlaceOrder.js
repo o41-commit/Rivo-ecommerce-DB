@@ -18,6 +18,26 @@ const placedOrderSchema = new mongoose.Schema(
       required: true,
       ref: "User",
     },
+    userNum: {
+      type: Number,
+      required: true,
+      ref: "User",
+    },
+    userAddress: {
+      type: String,
+      required: true,
+      ref: "User",
+    },
+    userEmail: {
+      type: String,
+      required: true,
+      ref: "User",
+    },
+    userName: {
+      type: String,
+      required: true,
+      ref: "User",
+    },
     items: [orderItemSchema],
     totalPrice: { type: Number, required: true },
     status: {

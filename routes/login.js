@@ -1,4 +1,3 @@
-// routes/login.js
 import express from "express";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
@@ -20,12 +19,10 @@ login.post("/register", async (req, res) => {
     return res.status(400).json({ message: "Passwords do not match" });
 
   try {
-    // Check if user exists in DB
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser)
       return res.status(400).json({ message: "User already exists" });
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = new User({
@@ -33,9 +30,11 @@ login.post("/register", async (req, res) => {
       email: email.toLowerCase(),
       password: hashedPassword,
       role: "user",
+      address: null,
+      num: null,
     });
 
-    await newUser.save(); // save to MongoDB
+    await newUser.save(); 
 
     const token = jwt.sign(
       { id: newUser._id, role: newUser.role },

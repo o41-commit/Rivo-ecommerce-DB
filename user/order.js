@@ -1,11 +1,15 @@
 import express from "express";
+import mongoose from "mongoose";
 import Cart from "../model/CartDb.js";
 import PlacedOrder from "../model/PlaceOrder.js";
 import Notification from "../model/notificationDb.js";
+import User from "../model/userDb.js";
 
 const order = express.Router();
 
-// GET CURRENT USER CART
+/**
+ * GET CURRENT USER CART
+ */
 order.get("/cart", async (req, res) => {
   const userId = req.user?.id;
   if (!userId) return res.status(401).json({ message: "Unauthorized" });
@@ -30,26 +34,51 @@ order.get("/cart", async (req, res) => {
   }
 });
 
-// CREATE ORDER
+/**
+ * CREATE ORDER
+ */
 order.post("/create", async (req, res) => {
   const userId = req.user?.id;
   if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
   const { cartItemIds } = req.body;
 
-  try {
-    let selectedItems = await Cart.find({ userId });
+  // Validate cartItemIds
+  if (cartItemIds && !Array.isArray(cartItemIds)) {
+    return res.status(400).json({ message: "Invalid cartItemIds" });
+  }
 
-    if (Array.isArray(cartItemIds) && cartItemIds.length > 0) {
-      selectedItems = selectedItems.filter((item) =>
-        cartItemIds.includes(item._id.toString())
-      );
+  try {
+    const findUser = await User.findById(userId);
+
+    if (!findUser) {
+      return res.status(404).json({ message: "User not found" });
     }
 
+    // Validate user profile
+    if (!findUser.address || !findUser.num) {
+      return res.status(400).json({
+        message: "User profile incomplete",
+      });
+    }
+
+    // Build query (OPTIMIZED)
+    let query = { userId };
+
+    if (cartItemIds && cartItemIds.length > 0) {
+      const validIds = cartItemIds.filter((id) =>
+        mongoose.Types.ObjectId.isValid(id)
+      );
+
+      query._id = { $in: validIds };
+    }
+
+    const selectedItems = await Cart.find(query);
+
     if (selectedItems.length === 0) {
-      return res
-        .status(400)
-        .json({ message: "No cart item selected for order" });
+      return res.status(400).json({
+        message: "No cart item selected for order",
+      });
     }
 
     const totalPrice = selectedItems.reduce(
@@ -57,73 +86,127 @@ order.post("/create", async (req, res) => {
       0
     );
 
-    const newOrder = await PlacedOrder.create({
-      userId,
-      items: selectedItems.map((item) => ({
-        productId: item.productId,
-        quantity: item.quantity,
-        price: item.unitPrice,
-        totalPrice: item.totalPrice,
-      })),
-      totalPrice,
-      status: "Pending",
-    });
+    // START TRANSACTION
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-    // ✅ REMOVE ITEMS FROM CART
-    await Cart.deleteMany({
-      _id: { $in: selectedItems.map((item) => item._id) },
-    });
+    try {
+      const newOrder = await PlacedOrder.create(
+        [
+          {
+            userId,
+            userAddress: findUser.address,
+            userNum: findUser.num,
+            userName: findUser.name,
+            userEmail: findUser.email,
+            items: selectedItems.map((item) => ({
+              productId: item.productId,
+              name: item.name,
+              quantity: item.quantity,
+              price: item.unitPrice,
+              totalPrice: item.totalPrice,
+              size: item.size,
+              colors: item.colors,
+              image: item.image,
+            })),
+            totalPrice,
+            status: "Pending",
+          },
+        ],
+        { session }
+      );
 
-    // ✅ CREATE NOTIFICATION (DB)
-    await Notification.create({
-      userId,
-      type: "user",
-      title: "Order Placed",
-      message: "Order created successfully",
-    });
+      await Cart.deleteMany(
+        {
+          _id: { $in: selectedItems.map((item) => item._id) },
+        },
+        { session }
+      );
 
-    return res.status(201).json({
-      success: true,
-      message: "Order created",
-      order: newOrder,
-    });
+      await Notification.create(
+        [
+          {
+            userId,
+            type: "user",
+            title: "Order Placed",
+            message: "Order created successfully",
+          },
+        ],
+        { session }
+      );
+
+      await session.commitTransaction();
+      session.endSession();
+
+      return res.status(201).json({
+        success: true,
+        message: "Order created",
+        order: newOrder[0],
+      });
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      throw error;
+    }
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Server error" });
   }
 });
 
-// ==============================
-// GET USER ORDERS
-// ==============================
+/**
+ * GET USER ORDERS (WITH PAGINATION)
+ */
 order.get("/my", async (req, res) => {
   const userId = req.user?.id;
   if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
   try {
-    const userOrders = await PlacedOrder.find({ userId });
-    return res.status(200).json({ userId, orders: userOrders });
+    const page = Number(req.query.page) || 1;
+    const limit = 10;
+
+    const orders = await PlacedOrder.find({ userId })
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit);
+
+    const total = await PlacedOrder.countDocuments({ userId });
+
+    return res.status(200).json({
+      userId,
+      page,
+      totalPages: Math.ceil(total / limit),
+      totalOrders: total,
+      orders,
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: "Server error" });
   }
 });
 
-// ==============================
-// GET SINGLE ORDER
-// ==============================
+/**
+ * GET SINGLE ORDER
+ */
 order.get("/:id", async (req, res) => {
   const userId = req.user?.id;
   if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
+  const { id } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid order ID" });
+  }
+
   try {
     const orderItem = await PlacedOrder.findOne({
-      _id: req.params.id,
+      _id: id,
       userId,
     });
 
-    if (!orderItem)
+    if (!orderItem) {
       return res.status(404).json({ message: "Order not found" });
+    }
 
     return res.status(200).json(orderItem);
   } catch (error) {
@@ -132,23 +215,28 @@ order.get("/:id", async (req, res) => {
   }
 });
 
-// ==============================
-// DELETE ORDER
-// ==============================
+/**
+ * DELETE ORDER
+ */
 order.delete("/delete/:id", async (req, res) => {
   const userId = req.user?.id;
   if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
+  const { id } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid order ID" });
+  }
+
   try {
     const orderItem = await PlacedOrder.findOne({
-      _id: req.params.id,
+      _id: id,
       userId,
     });
 
-
-
-    if (!orderItem)
+    if (!orderItem) {
       return res.status(404).json({ message: "Order not found" });
+    }
 
     if (orderItem.status !== "Pending") {
       return res.status(400).json({
@@ -156,8 +244,8 @@ order.delete("/delete/:id", async (req, res) => {
       });
     }
 
-    await PlacedOrder.findByIdAndDelete(req.params.id);
-    
+    await PlacedOrder.findByIdAndDelete(id);
+
     return res.status(200).json({
       message: "Order deleted successfully",
     });

@@ -4,9 +4,7 @@ import PlacedOrder from "../model/PlaceOrder.js";
 
 const confirmOrder = express.Router();
 
-// ==============================
 // GET ALL ORDERS (STAFF)
-// ==============================
 confirmOrder.get("/all", async (req, res) => {
   try {
     const orders = await PlacedOrder.find().sort({ createdAt: -1 });
@@ -17,9 +15,29 @@ confirmOrder.get("/all", async (req, res) => {
   }
 });
 
-// ==============================
+// TO GET A SINGLE ORDER
+confirmOrder.get("order/:id", async (req, res) => {
+  const orderId = req.params.id;
+  try {
+    if (!orderId) {
+      return res
+        .status(400)
+        .json({ message: "Pls select an order to procced" });
+    }
+
+    const findOrder = await PlacedOrder.findById(orderId);
+
+    if (!findOrder) {
+      return res.status(404).json({ message: "order not found " });
+    }
+
+    res.status(200).json(findOrder)
+  } catch (error) {
+    res.status(500).json({message: "server error "})
+  }
+});
+
 // CONFIRM ORDER (PENDING → COMPLETED)
-// ==============================
 confirmOrder.put("/confirm/:id", async (req, res) => {
   const orderId = req.params.id;
 
@@ -40,7 +58,6 @@ confirmOrder.put("/confirm/:id", async (req, res) => {
     order.approvedAt = new Date();
     await order.save();
 
-    // ✅ CREATE NOTIFICATION (DB)
     await Notification.create({
       userId: order.userId,
       type: "user",
@@ -64,9 +81,7 @@ confirmOrder.put("/confirm/:id", async (req, res) => {
   }
 });
 
-// ==============================
 // SHIP ORDER (COMPLETED → SHIPPED)
-// ==============================
 confirmOrder.put("/approve/:id", async (req, res) => {
   const orderId = req.params.id;
 
@@ -87,7 +102,6 @@ confirmOrder.put("/approve/:id", async (req, res) => {
     order.approvedAt = new Date();
     await order.save();
 
-    // ✅ CREATE NOTIFICATION (DB)
     await Notification.create({
       userId: order.userId,
       type: "user",

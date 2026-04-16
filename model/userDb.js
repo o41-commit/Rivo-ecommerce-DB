@@ -24,11 +24,11 @@ const userSchema = new mongoose.Schema({
   },
   num: {
     type: String,
-    default: "",
+    default: null,
   },
   address: {
     type: Array,
-    default: "",
+    default: null,
   },
   image: {
     type: String, // store image URL or path

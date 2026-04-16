@@ -2,8 +2,8 @@ import mongoose from "mongoose";
 
 const cartSchema = new mongoose.Schema(
   {
-    userId: { type: String, default: null }, // linked user
-    guestId: { type: String, default: null }, // guest session
+    userId: { type: String, default: null }, 
+    guestId: { type: String, default: null },
     productId: { type: String, required: true },
     quantity: { type: Number, default: 1 },
     unitPrice: { type: Number, required: true },

@@ -19,12 +19,12 @@ const placedOrderSchema = new mongoose.Schema(
       ref: "User",
     },
     userNum: {
-      type: Number,
+      type: String,
       required: true,
       ref: "User",
     },
     userAddress: {
-      type: String,
+      type: Array,
       required: true,
       ref: "User",
     },

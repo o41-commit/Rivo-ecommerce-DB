@@ -7,9 +7,7 @@ import User from "../model/userDb.js";
 
 const order = express.Router();
 
-/**
- * GET CURRENT USER CART
- */
+// GET USER CART 
 order.get("/cart", async (req, res) => {
   const userId = req.user?.id;
   if (!userId) return res.status(401).json({ message: "Unauthorized" });

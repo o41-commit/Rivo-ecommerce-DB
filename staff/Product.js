@@ -15,7 +15,6 @@ item.post("/create", upload.array("images", 5), async (req, res) => {
   }
 
   try {
-    // Cloudinary replaces local file URLs
     const images = req.files.map((file) => file.path);
 
     const newProduct = new Product({

@@ -1,2 +1,4 @@
+config/firebaseAdmin.js
+serviceAccountKey.json
 .env
 node_modules

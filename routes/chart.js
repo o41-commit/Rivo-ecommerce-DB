@@ -5,9 +5,7 @@ import Cart from "../model/CartDb.js";
 
 const cartRouter = express.Router();
 
-// ==============================
 // ADD ITEM TO CART
-// ==============================
 cartRouter.post("/add", optionalAuth, async (req, res) => {
   const { productId, quantity, guestId } = req.body;
   const userId = req.userId;
@@ -19,13 +17,11 @@ cartRouter.post("/add", optionalAuth, async (req, res) => {
   }
 
   try {
-    // ✅ GET PRODUCT FROM DB
     const product = await Product.findById(productId);
     if (!product) return res.status(404).json({ message: "product not found" });
 
     const numericPrice = Number(product.price);
 
-    // Check existing cart item
     const existingItem = await Cart.findOne({
       productId,
       userId: userId || null,
@@ -97,9 +93,7 @@ cartRouter.get("/all", optionalAuth, async (req, res) => {
   }
 });
 
-// ==============================
 // GET CART ITEMS (GUEST)
-// ==============================
 cartRouter.get("/all/guest/:guestId", async (req, res) => {
   const guestId = req.params.guestId;
 
@@ -127,9 +121,7 @@ cartRouter.get("/all/guest/:guestId", async (req, res) => {
   }
 });
 
-// ==============================
 // UPDATE CART ITEM
-// ==============================
 cartRouter.patch("/edit", async (req, res) => {
   const { cartId, quantity } = req.body;
 

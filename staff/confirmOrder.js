@@ -4,7 +4,7 @@ import PlacedOrder from "../model/PlaceOrder.js";
 
 const confirmOrder = express.Router();
 
-// GET ALL ORDERS (STAFF)
+// GET ALL ORDERS 
 confirmOrder.get("/all", async (req, res) => {
   try {
     const orders = await PlacedOrder.find().sort({ createdAt: -1 });

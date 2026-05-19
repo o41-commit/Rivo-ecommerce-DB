@@ -86,11 +86,12 @@ login.post("/google", async (req, res) => {
   }
 
   try {
-    const decodedToken = await admin.auth().verifyIdToken(token);
+    // verify firebase token
+    const decoded = await admin.auth().verifyIdToken(token);
 
-    const email = decodedToken.email;
+    const email = decoded.email;
     const name =
-      decodedToken.name ||
+      decoded.name ||
       email?.split("@")[0] ||
       "Google User";
 
@@ -98,23 +99,19 @@ login.post("/google", async (req, res) => {
       email: email.toLowerCase(),
     });
 
+    // create user if not exists
     if (!user) {
       user = await User.create({
         name,
         email: email.toLowerCase(),
-        password: null,
+        password: null, // ✅ now allowed
         role: "user",
         authProvider: "google",
-        address: null,
-        num: null,
       });
     }
 
     const appToken = jwt.sign(
-      {
-        id: user._id,
-        role: user.role,
-      },
+      { id: user._id, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );

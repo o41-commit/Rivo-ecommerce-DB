@@ -7,33 +7,47 @@ const userSchema = new mongoose.Schema({
     required: true,
     trim: true,
   },
+
   email: {
     type: String,
     required: true,
-    unique: true, // ensures no duplicate emails
+    unique: true,
     lowercase: true,
   },
+
+  // 🔥 FIX: must NOT be required for Google users
   password: {
     type: String,
-    required: true,
+    default: null,
   },
+
   role: {
     type: String,
     enum: ["user", "staff", "admin"],
     default: "user",
   },
+
+  authProvider: {
+    type: String,
+    enum: ["email", "google"],
+    default: "email",
+  },
+
   num: {
     type: String,
     default: null,
   },
+
   address: {
     type: Array,
-    default: null,
+    default: [],
   },
+
   image: {
-    type: String, // store image URL or path
+    type: String,
     default: null,
   },
+
   createdAt: {
     type: Date,
     default: Date.now,

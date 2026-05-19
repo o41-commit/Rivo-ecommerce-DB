@@ -164,9 +164,7 @@ cartRouter.delete("/delete/:id", async (req, res) => {
   }
 });
 
-// ==============================
 // MERGE GUEST CART
-// ==============================
 cartRouter.post("/merge", optionalAuth, async (req, res) => {
   const { guestId } = req.body;
   const userId = req.userId;

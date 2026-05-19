@@ -78,35 +78,28 @@ login.post("/register", async (req, res) => {
 
 
 
-// GOOGLE LOGIN
 login.post("/google", async (req, res) => {
-
   const { token } = req.body;
 
   if (!token) {
-    return res.status(400).json({
-      message: "Token required",
-    });
+    return res.status(400).json({ message: "Token required" });
   }
 
   try {
+    const decodedToken = await admin.auth().verifyIdToken(token);
 
-    // verify firebase token
-    const decodedToken = await admin
-      .auth()
-      .verifyIdToken(token);
+    const email = decodedToken.email;
+    const name =
+      decodedToken.name ||
+      email?.split("@")[0] ||
+      "Google User";
 
-    const { email, name } = decodedToken;
-
-    // check existing user
-    let existingUser = await User.findOne({
+    let user = await User.findOne({
       email: email.toLowerCase(),
     });
 
-    // create user if not existing
-    if (!existingUser) {
-
-      existingUser = new User({
+    if (!user) {
+      user = await User.create({
         name,
         email: email.toLowerCase(),
         password: null,
@@ -115,39 +108,32 @@ login.post("/google", async (req, res) => {
         address: null,
         num: null,
       });
-
-      await existingUser.save();
     }
 
-    // create jwt
     const appToken = jwt.sign(
       {
-        id: existingUser._id,
-        role: existingUser.role,
+        id: user._id,
+        role: user.role,
       },
       process.env.JWT_SECRET,
-      {
-        expiresIn: "1h",
-      }
+      { expiresIn: "1h" }
     );
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
-      message: "Google login successful",
       token: appToken,
-      role: existingUser.role,
+      role: user.role,
     });
 
   } catch (error) {
+    console.error("GOOGLE AUTH ERROR:", error);
 
-    console.error(error);
-
-    res.status(500).json({
+    return res.status(500).json({
       message: "Google authentication failed",
+      error: error.message,
     });
   }
 });
-
 
 
 // NORMAL LOGIN
